@@ -5,7 +5,7 @@ import { comparePassword } from "@/lib/password";
 import { signAccessToken } from "@/lib/jwt";
 
 const loginSchema = z.object({
-  identifier: z.string().min(1, "Vui lòng nhập email hoặc số điện thoại"),
+  identifier: z.string().trim().min(1, "Vui lòng nhập email hoặc số điện thoại"),
   password: z.string().min(1, "Vui lòng nhập mật khẩu"),
 });
 
@@ -14,11 +14,14 @@ export async function POST(request: Request) {
     const body = await request.json();
     const validated = loginSchema.parse(body);
 
+    const identifier = validated.identifier.includes("@")
+      ? validated.identifier.toLowerCase()
+      : validated.identifier;
     const user = await prisma.user.findFirst({
       where: {
         OR: [
-          { email: validated.identifier },
-          { phone: validated.identifier },
+          { email: identifier },
+          { phone: identifier },
         ],
       },
     });

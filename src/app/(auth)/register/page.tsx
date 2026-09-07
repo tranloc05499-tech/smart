@@ -20,6 +20,14 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (fullName.trim().length < 2) {
+      setError("Họ tên phải có ít nhất 2 ký tự");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Mật khẩu phải có ít nhất 6 ký tự");
+      return;
+    }
     setIsLoading(true);
     setError(null);
 
@@ -27,7 +35,13 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName, email, phone, password, role }),
+        body: JSON.stringify({
+          fullName: fullName.trim(),
+          email: email.trim().toLowerCase(),
+          phone: phone.trim(),
+          password,
+          role,
+        }),
       });
 
       const data = await res.json();

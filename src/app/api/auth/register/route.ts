@@ -5,9 +5,9 @@ import { hashPassword } from "@/lib/password";
 import { signAccessToken } from "@/lib/jwt";
 
 const registerSchema = z.object({
-  fullName: z.string().min(2, "Họ tên phải có ít nhất 2 ký tự"),
-  email: z.string().email("Email không hợp lệ"),
-  phone: z.string().optional(),
+  fullName: z.string().trim().min(2, "Họ tên phải có ít nhất 2 ký tự").max(120, "Họ tên quá dài"),
+  email: z.string().trim().email("Email không hợp lệ").transform((value) => value.toLowerCase()),
+  phone: z.string().trim().regex(/^[0-9+()\-\s]{8,20}$/, "Số điện thoại không hợp lệ").optional().or(z.literal("")),
   password: z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
   role: z.enum(["TEACHER", "STUDENT"]).default("TEACHER"),
 });
@@ -27,8 +27,9 @@ export async function POST(request: Request) {
     });
 
     if (existingUser) {
+      const duplicateField = existingUser.email === validated.email ? "Email" : "Số điện thoại";
       return NextResponse.json(
-        { error: "Email hoặc số điện thoại đã được đăng ký trong hệ thống" },
+        { error: `${duplicateField} đã được đăng ký trong hệ thống` },
         { status: 400 }
       );
     }
@@ -74,6 +75,9 @@ export async function POST(request: Request) {
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues[0].message }, { status: 400 });
+    }
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2002") {
+      return NextResponse.json({ error: "Email hoặc số điện thoại vừa được đăng ký bởi tài khoản khác" }, { status: 409 });
     }
     console.error("Register error:", error);
     return NextResponse.json({ error: "Lỗi hệ thống khi đăng ký" }, { status: 500 });
