@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "tsx --test tests/**/*.test.ts",
     "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "db:seed:if-empty": "tsx prisma/seed-if-empty.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.4.1",

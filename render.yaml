@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: starter
     buildCommand: npm ci --include=dev && npx prisma generate && npm run build
-    startCommand: DATABASE_URL=file:/tmp/prod.db npm run db:push && DATABASE_URL=file:/tmp/prod.db npm run start
+    startCommand: DATABASE_URL=file:/tmp/prod.db npm run db:push && DATABASE_URL=file:/tmp/prod.db npm run db:seed:if-empty && DATABASE_URL=file:/tmp/prod.db npm run start
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:
