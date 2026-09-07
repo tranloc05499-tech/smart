@@ -4,16 +4,12 @@ services:
     runtime: node
     plan: starter
     buildCommand: npm ci --include=dev && npx prisma generate && npm run build
-    startCommand: npm run db:push && npm run start
+    startCommand: DATABASE_URL=file:/tmp/prod.db npm run db:push && DATABASE_URL=file:/tmp/prod.db npm run start
     healthCheckPath: /api/health
     autoDeploy: true
-    disk:
-      name: eduportal-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: DATABASE_URL
-        value: file:/var/data/prod.db
+        value: file:/tmp/prod.db
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET

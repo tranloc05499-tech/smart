@@ -35,7 +35,7 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 ## Deploy on Render
 
-This project uses SQLite, so deploy it with the persistent disk defined in `render.yaml`.
+The Free Render deployment uses SQLite at `/tmp/prod.db`, which is writable but ephemeral. For persistent production data, upgrade to a Render plan with a persistent disk or migrate Prisma to PostgreSQL.
 
 Set `DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, and `NEXT_PUBLIC_APP_URL` in the hosting provider. Never commit the local `.env` file.
 =======
