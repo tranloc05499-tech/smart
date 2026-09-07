@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   Flag, ChevronLeft, ChevronRight, Clock, CheckCircle2,
@@ -35,6 +35,22 @@ interface Answers {
     textAnswer?: string;
     isFlagged?: boolean;
   };
+}
+
+function renderImportedContent(content: string, keyPrefix: string): ReactNode {
+  const parts = content.split(/(!\[[^\]]*\]\(data:image\/[\w.+-]+;base64,[^)]+\))/g);
+  return parts.map((part, index) => {
+    const match = part.match(/^!\[([^\]]*)\]\((data:image\/[\w.+-]+;base64,[^)]+)\)$/);
+    if (!match) return <React.Fragment key={`${keyPrefix}-${index}`}>{part}</React.Fragment>;
+    return (
+      <img
+        key={`${keyPrefix}-${index}`}
+        src={match[2]}
+        alt={match[1] || "Hình ảnh câu hỏi"}
+        className="my-3 max-h-64 max-w-full rounded-lg object-contain"
+      />
+    );
+  });
 }
 
 export default function ExamRoomPage() {
@@ -401,7 +417,9 @@ export default function ExamRoomPage() {
 
               {/* Question content */}
               <div className="bg-slate-800 rounded-2xl p-5 mb-4 border border-slate-700">
-                <p className="text-white text-base leading-relaxed whitespace-pre-wrap">{question.content}</p>
+                <div className="text-white text-base leading-relaxed whitespace-pre-wrap">
+                  {renderImportedContent(question.content, `question-${question.questionId}`)}
+                </div>
               </div>
 
               {/* Options / Answer Input */}
@@ -432,7 +450,7 @@ export default function ExamRoomPage() {
                         )}>
                           {option.label}
                         </span>
-                        <span className="text-sm leading-relaxed">{option.content}</span>
+                        <span className="text-sm leading-relaxed">{renderImportedContent(option.content, `option-${option.id}`)}</span>
                         {isSelected && <CheckCircle2 className="h-5 w-5 text-blue-400 shrink-0 ml-auto" />}
                       </button>
                     );

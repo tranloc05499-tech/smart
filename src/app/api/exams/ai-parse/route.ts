@@ -3,6 +3,20 @@ import { getAuthUserFromRequest } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import mammoth from "mammoth";
 
+const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
+
+function htmlToTextPreservingMedia(html: string) {
+  return html
+    .replace(/<img[^>]*src=["']([^"']+)["'][^>]*>/gi, (_match, src: string) => `\n![Hình ảnh đề thi](${src})\n`)
+    .replace(/<(br|\/p|\/div|\/li|\/tr|\/h[1-6])\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/\n{3,}/g, "\n\n");
+}
+
 // Robust parsing of text into Questions
 export function parseExamText(rawText: string) {
   const questions: Array<{
@@ -29,8 +43,10 @@ export function parseExamText(rawText: string) {
     if (lines.length === 0) continue;
 
     // Detect Answer key
-    const ansMatch = trimmed.match(/(?:Đáp án|Đáp án đúng|Key|Ans)[:\s]*([A-D])/i);
-    const correctLetter = ansMatch ? ansMatch[1].toUpperCase() : null;
+    const ansMatch = trimmed.match(/(?:Đáp án|Đáp án đúng|Key|Ans)[:\s]*([A-D](?:\s*[,;]\s*[A-D])*)/i);
+    const correctLetters = ansMatch
+      ? ansMatch[1].toUpperCase().split(/\s*[,;]\s*/)
+      : [];
 
     // Detect explanation
     const expMatch = trimmed.match(/(?:Lời giải|Giải thích|Hướng dẫn giải)[:\s]*([\s\S]*)$/i);
@@ -46,7 +62,7 @@ export function parseExamText(rawText: string) {
         parsingOptions = true;
         const label = optMatch[1].toUpperCase();
         const optText = optMatch[2].replace(/(?:Đáp án|Key)[:\s]*[A-D].*/i, "").trim();
-        const isCorrect = correctLetter ? label === correctLetter : label === "A";
+        const isCorrect = correctLetters.length > 0 ? correctLetters.includes(label) : label === "A";
 
         options.push({
           label,
@@ -106,19 +122,33 @@ export async function POST(request: NextRequest) {
     let extractedText = "";
 
     if (file) {
+      if (file.size > MAX_UPLOAD_BYTES) {
+        return NextResponse.json({ error: "File quá lớn. Vui lòng tải file tối đa 12MB." }, { status: 413 });
+      }
       const buffer = Buffer.from(await file.arrayBuffer());
       const fileName = file.name.toLowerCase();
 
       if (fileName.endsWith(".docx") || fileName.endsWith(".doc")) {
-        // Use mammoth to extract clean text from Word docx
-        const result = await mammoth.extractRawText({ buffer });
-        extractedText = result.value;
+        if (fileName.endsWith(".doc")) {
+          return NextResponse.json({ error: "Định dạng .doc cũ chưa thể giữ ảnh/MathType. Vui lòng lưu lại thành .docx rồi tải lên." }, { status: 415 });
+        }
+        const result = await mammoth.convertToHtml({ buffer }, {
+          convertImage: mammoth.images.imgElement((image) =>
+            image.read("base64").then((imageBuffer) => ({
+              src: `data:${image.contentType};base64,${imageBuffer}`,
+            }))
+          ),
+        });
+        extractedText = htmlToTextPreservingMedia(result.value);
       } else if (fileName.endsWith(".pdf")) {
         try {
           // eslint-disable-next-line @typescript-eslint/no-require-imports
           const pdfParse = require("pdf-parse");
           const pdfData = await pdfParse(buffer);
           extractedText = pdfData.text;
+          if (!extractedText.trim()) {
+            return NextResponse.json({ error: "PDF không có lớp văn bản. Vui lòng dùng PDF có thể bôi đen chữ hoặc chuyển sang DOCX để giữ hình ảnh/MathType." }, { status: 415 });
+          }
         } catch (pdfErr) {
           console.error("PDF parse error:", pdfErr);
           // Fallback: decode text

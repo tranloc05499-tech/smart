@@ -560,7 +560,7 @@ export default function TeacherExamsPage() {
               <h2 className="text-xl font-bold text-slate-900">Tạo Đề Thi Bằng AI</h2>
             </div>
             <p className="text-xs text-slate-500 mb-5">
-              Tải lên file đề thi (Word, PDF, Text) hoặc dán văn bản để AI tự động nhận diện câu hỏi, các lựa chọn A, B, C, D và đáp án đúng.
+              Tải lên DOCX/PDF có text layer hoặc nhập thủ công. Hệ thống giữ công thức dạng text, ảnh nhúng trong DOCX và tự tạo phòng thi online.
             </p>
 
             <form onSubmit={handleAiCreateExam} className="space-y-4">
@@ -582,12 +582,12 @@ export default function TeacherExamsPage() {
                   Chọn file Word (.docx), PDF hoặc Text (.txt)
                 </p>
                 <p className="text-[11px] text-slate-400 mt-0.5">
-                  Định dạng khuyến nghị: Câu 1: ... A. ... B. ... C. ... D. ... Đáp án: A
+                  DOCX giữ ảnh nhúng; PDF scan cần OCR trước. Mẫu: Câu 1: ... A. ... B. ... C. ... D. ... Đáp án: A
                 </p>
                 <input
                   type="file"
                   id="ai-file-upload"
-                  accept=".txt,.doc,.docx,.pdf,.md"
+                  accept=".txt,.docx,.pdf,.md"
                   onChange={(e) => setAiFile(e.target.files?.[0] || null)}
                   className="hidden"
                 />
@@ -602,7 +602,7 @@ export default function TeacherExamsPage() {
               {/* Or paste text */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Hoặc dán trực tiếp nội dung đề thi vào đây
+                    Hoặc nhập/dán thủ công từng câu hỏi, lựa chọn và đáp án
                 </label>
                 <textarea
                   rows={4}
