@@ -9,11 +9,11 @@ services:
     autoDeploy: true
     disk:
       name: eduportal-data
-      mountPath: /data
+      mountPath: /var/data
       sizeGB: 1
     envVars:
       - key: DATABASE_URL
-        value: file:/data/prod.db
+        value: file:/var/data/prod.db
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET
