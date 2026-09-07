@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/Input";
 
 export default function TeacherSettingsPage() {
   const [fullName, setFullName] = useState("Nguyễn Văn An");
-  const [email, setEmail] = useState("teacher@edutech.vn");
+  const [email, setEmail] = useState("");
   const [school, setSchool] = useState("THPT Chuyên Hà Nội - Amsterdam");
   const [phone, setPhone] = useState("0912345678");
   const [emailNotify, setEmailNotify] = useState(true);

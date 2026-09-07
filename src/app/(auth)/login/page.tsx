@@ -1,21 +1,16 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, UserCheck, GraduationCap, ShieldCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
-function LoginContent() {
+export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const defaultRole = searchParams.get("role") || "TEACHER";
-
-  const [identifier, setIdentifier] = useState(
-    defaultRole === "TEACHER" ? "teacher@edutech.vn" : "student1@edutech.vn"
-  );
-  const [password, setPassword] = useState("123456");
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,12 +47,6 @@ function LoginContent() {
     }
   };
 
-  const handleQuickLogin = (email: string, pass: string) => {
-    setIdentifier(email);
-    setPassword(pass);
-    setError(null);
-  };
-
   return (
     <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/60 border border-slate-100 p-8">
       <div className="text-center mb-6">
@@ -81,7 +70,7 @@ function LoginContent() {
           <Input
             label="Email hoặc Số điện thoại"
             type="text"
-            placeholder="teacher@edutech.vn hoặc 0901234567"
+            placeholder="email@example.com hoặc số điện thoại"
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
             required
@@ -118,42 +107,6 @@ function LoginContent() {
         </Button>
       </form>
 
-      {/* 1-Click Demo Accounts */}
-      <div className="mt-6 pt-6 border-t border-slate-100">
-        <div className="text-xs font-semibold uppercase text-slate-400 tracking-wider mb-2.5 text-center">
-          Tài khoản dùng thử (1-Click)
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          <button
-            type="button"
-            onClick={() => handleQuickLogin("teacher@edutech.vn", "123456")}
-            className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-blue-100 bg-blue-50/50 hover:bg-blue-100/60 text-blue-800 transition-colors text-xs font-medium"
-          >
-            <UserCheck className="h-4 w-4 mb-1 text-blue-600" />
-            <span>Thầy An</span>
-            <span className="text-[10px] text-blue-500 font-normal">Giáo viên</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleQuickLogin("student1@edutech.vn", "123456")}
-            className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-emerald-100 bg-emerald-50/50 hover:bg-emerald-100/60 text-emerald-800 transition-colors text-xs font-medium"
-          >
-            <GraduationCap className="h-4 w-4 mb-1 text-emerald-600" />
-            <span>Minh Anh</span>
-            <span className="text-[10px] text-emerald-500 font-normal">Học sinh</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleQuickLogin("admin@edutech.vn", "123456")}
-            className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-purple-100 bg-purple-50/50 hover:bg-purple-100/60 text-purple-800 transition-colors text-xs font-medium"
-          >
-            <ShieldCheck className="h-4 w-4 mb-1 text-purple-600" />
-            <span>Quản trị</span>
-            <span className="text-[10px] text-purple-500 font-normal">Admin</span>
-          </button>
-        </div>
-      </div>
-
       <div className="mt-6 text-center text-sm text-slate-500">
         Chưa có tài khoản?{" "}
         <Link
@@ -174,19 +127,5 @@ function LoginContent() {
         </Link>
       </div>
     </div>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="bg-white rounded-2xl p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto" />
-        </div>
-      }
-    >
-      <LoginContent />
-    </Suspense>
   );
 }

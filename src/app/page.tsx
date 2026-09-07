@@ -3,14 +3,12 @@ import {
   BookOpen,
   Sparkles,
   ArrowRight,
-  ShieldCheck,
   Users,
   Clock,
   BrainCircuit,
   GraduationCap,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 
 export default function HomePage() {
   return (
@@ -67,13 +65,13 @@ export default function HomePage() {
 
         {/* Quick entry links */}
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3.5">
-          <Link href="/login?role=TEACHER">
+          <Link href="/login">
             <Button size="lg" className="h-12 px-6 bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/25">
               <span>Cổng Giáo Viên (Teacher)</span>
               <ArrowRight className="h-4 w-4 ml-1.5" />
             </Button>
           </Link>
-          <Link href="/login?role=STUDENT">
+          <Link href="/register">
             <Button size="lg" variant="outline" className="h-12 px-6 border-slate-300 hover:bg-slate-100">
               <GraduationCap className="h-5 w-5 mr-1 text-emerald-600" />
               <span>Cổng Học Sinh (Student)</span>
@@ -86,36 +84,6 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* 3. Demo Credentials Box */}
-        <div className="mt-12 max-w-2xl mx-auto p-5 rounded-2xl bg-white border border-slate-200/90 shadow-sm text-left">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <ShieldCheck className="h-4 w-4 text-blue-600" />
-              <span>Tài khoản Demo đã sẵn sàng (Mật khẩu: 123456)</span>
-            </div>
-            <Badge variant="green">Đã kết nối Database Thực</Badge>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3.5 text-xs">
-            <div className="p-3 rounded-xl bg-blue-50/50 border border-blue-100">
-              <div className="font-bold text-blue-900 flex items-center justify-between">
-                <span>👨‍🏫 Giáo viên: Thầy An</span>
-                <Link href="/login?role=TEACHER" className="text-blue-600 hover:underline">Vào ngay →</Link>
-              </div>
-              <div className="text-slate-600 mt-1 font-mono">teacher@edutech.vn</div>
-              <div className="text-slate-400 text-[11px] mt-0.5">8 lớp • 327 HS • Đề thi giữa kỳ</div>
-            </div>
-
-            <div className="p-3 rounded-xl bg-emerald-50/50 border border-emerald-100">
-              <div className="font-bold text-emerald-900 flex items-center justify-between">
-                <span>👨‍🎓 Học sinh: Minh Anh</span>
-                <Link href="/login?role=STUDENT" className="text-emerald-600 hover:underline">Vào ngay →</Link>
-              </div>
-              <div className="text-slate-600 mt-1 font-mono">student1@edutech.vn</div>
-              <div className="text-slate-400 text-[11px] mt-0.5">Lớp 12A1 • Đề thi 8F3K2A • Điểm 8.5</div>
-            </div>
-          </div>
-        </div>
       </section>
 
       {/* 4. Core Features Grid */}
