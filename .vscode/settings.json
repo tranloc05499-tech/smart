@@ -1,0 +1,24 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^Get-Command vercel -ErrorAction SilentlyContinue; Get-Command render -ErrorAction SilentlyContinue; Test-Path \\.git; Test-Path render\\.yaml; Test-Path \\.env\\.example$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^git --version; git status --short; git remote -v$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^Get-Command gh -ErrorAction SilentlyContinue; Get-Command vercel -ErrorAction SilentlyContinue; Get-Command render -ErrorAction SilentlyContinue; node --version; npm --version$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^git init -b main; git add -A; git commit -m \"Prepare EduPortal for deployment\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^npm install --global vercel$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

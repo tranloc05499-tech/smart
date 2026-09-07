@@ -1,0 +1,382 @@
+// Prisma Schema for Modern LMS & Exam Engine (Azota Alternative)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// -------------------------------------------------------------
+// 1. IDENTITY & RBAC
+// -------------------------------------------------------------
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  phone        String?   @unique
+  passwordHash String
+  fullName     String
+  avatar       String?
+  role         String    @default("TEACHER") // SUPER_ADMIN, ORG_ADMIN, TEACHER, TEACHER_ASSISTANT, STUDENT
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relationships
+  orgMemberships    OrganizationMember[]
+  teachingClasses   Class[]              @relation("TeacherClasses")
+  enrolledClasses   ClassMember[]        @relation("StudentClassMemberships")
+  questionBanks     QuestionBank[]
+  createdQuestions  Question[]           @relation("CreatedQuestions")
+  createdExams      Exam[]               @relation("TeacherExams")
+  examAttempts      ExamAttempt[]        @relation("StudentExamAttempts")
+  createdAssignments Assignment[]        @relation("TeacherAssignments")
+  submissions       AssignmentSubmission[]
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+  aiJobs            AIJob[]
+  aiUsages          AIUsage[]
+}
+
+model Organization {
+  id          String   @id @default(uuid())
+  name        String
+  code        String   @unique
+  logo        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     OrganizationMember[]
+  classes     Class[]
+}
+
+model OrganizationMember {
+  id             String       @id @default(uuid())
+  organizationId String
+  userId         String
+  role           String       @default("MEMBER") // ADMIN, TEACHER, STUDENT
+  createdAt      DateTime     @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+}
+
+// -------------------------------------------------------------
+// 2. CLASSROOM MANAGEMENT
+// -------------------------------------------------------------
+
+model Class {
+  id          String        @id @default(uuid())
+  name        String
+  code        String        @unique // Join code (e.g. CLS-12A1-2026)
+  subject     String
+  grade       Int
+  schoolYear  String        @default("2026-2027")
+  description String?
+  teacherId   String
+  orgId       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  teacher     User          @relation("TeacherClasses", fields: [teacherId], references: [id])
+  organization Organization? @relation(fields: [orgId], references: [id])
+  members     ClassMember[]
+  examAssignments ExamClassAssignment[]
+  assignments Assignment[]
+}
+
+model ClassMember {
+  id          String    @id @default(uuid())
+  classId     String
+  studentId   String
+  studentCode String?   // SBD / Mã học sinh
+  status      String    @default("ACTIVE") // ACTIVE, SUSPENDED
+  joinedAt    DateTime  @default(now())
+
+  class       Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student     User      @relation("StudentClassMemberships", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, studentId])
+}
+
+// -------------------------------------------------------------
+// 3. QUESTION BANK & QUESTIONS
+// -------------------------------------------------------------
+
+model QuestionBank {
+  id          String     @id @default(uuid())
+  title       String
+  description String?
+  subject     String
+  grade       Int
+  teacherId   String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  teacher     User       @relation(fields: [teacherId], references: [id])
+  questions   Question[]
+}
+
+model Question {
+  id                String           @id @default(uuid())
+  bankId            String?
+  type              String           @default("single_choice") // single_choice, multiple_choice, true_false, short_answer, fill_blank, essay, matching, ordering
+  content           String           // Markdown, LaTeX, HTML
+  correctAnswer     String?          // Single string or JSON stringified for matching/ordering
+  explanation       String?          // Detailed answer explanation
+  points            Float            @default(1.0)
+  subject           String           @default("Toán")
+  grade             Int              @default(12)
+  chapter           String?
+  topic             String?
+  difficulty        String           @default("comprehension") // recognition, comprehension, application, advanced
+  learningObjective String?
+  tags              String?          // Comma-separated or JSON
+  createdById       String
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  createdBy         User             @relation("CreatedQuestions", fields: [createdById], references: [id])
+  bank              QuestionBank?    @relation(fields: [bankId], references: [id], onDelete: SetNull)
+  options           QuestionOption[]
+  examQuestions     ExamQuestion[]
+}
+
+model QuestionOption {
+  id         String   @id @default(uuid())
+  questionId String
+  label      String   // A, B, C, D...
+  content    String
+  isCorrect  Boolean  @default(false)
+  order      Int      @default(0)
+
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+// -------------------------------------------------------------
+// 4. EXAM ENGINE
+// -------------------------------------------------------------
+
+model Exam {
+  id                 String                @id @default(uuid())
+  title              String
+  code               String                @unique // 6-digit public exam code e.g. 8F3K2A
+  description        String?
+  durationMinutes    Int                   @default(45)
+  startTime          DateTime?
+  endTime            DateTime?
+  maxAttempts        Int                   @default(1)
+  randomizeQuestions Boolean               @default(true)
+  randomizeOptions   Boolean               @default(true)
+  showScore          Boolean               @default(true)
+  showAnswers        Boolean               @default(true)
+  showExplanation    Boolean               @default(true)
+  allowLateSubmission Boolean              @default(false)
+  requireLogin       Boolean               @default(false) // If false, students can enter Name/SBD directly
+  antiCheatLevel     Int                   @default(1) // 0: None, 1: Tab switch & Fullscreen, 2: Strict
+  passScore          Float                 @default(5.0)
+  status             String                @default("DRAFT") // DRAFT, PUBLISHED, CLOSED
+  teacherId          String
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  teacher            User                  @relation("TeacherExams", fields: [teacherId], references: [id])
+  sections           ExamSection[]
+  questions          ExamQuestion[]
+  classAssignments   ExamClassAssignment[]
+  attempts           ExamAttempt[]
+}
+
+model ExamSection {
+  id          String         @id @default(uuid())
+  examId      String
+  title       String         // e.g. "Phần I: Trắc nghiệm khách quan", "Phần II: Tự luận"
+  order       Int            @default(1)
+  points      Float          @default(10.0)
+
+  exam        Exam           @relation(fields: [examId], references: [id], onDelete: Cascade)
+  questions   ExamQuestion[]
+}
+
+model ExamQuestion {
+  id         String       @id @default(uuid())
+  examId     String
+  sectionId  String?
+  questionId String
+  order      Int          @default(1)
+  points     Float        @default(1.0)
+
+  exam       Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+  section    ExamSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  question   Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model ExamClassAssignment {
+  id         String   @id @default(uuid())
+  examId     String
+  classId    String
+  assignedAt DateTime @default(now())
+
+  exam       Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  class      Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, classId])
+}
+
+// -------------------------------------------------------------
+// 5. EXAM ATTEMPTS, AUTOSAVE & RESULTS
+// -------------------------------------------------------------
+
+model ExamAttempt {
+  id             String       @id @default(uuid())
+  examId         String
+  studentId      String?      // Optional if taking via public link
+  studentName    String       // Name entered or from profile
+  studentCode    String?      // SBD / Student ID
+  startedAt      DateTime     @default(now())
+  expiresAt      DateTime     // server_started_at + duration_minutes
+  submittedAt    DateTime?
+  score          Float?       // Final score out of 10 or 100
+  totalPoints    Float?
+  status         String       @default("IN_PROGRESS") // IN_PROGRESS, SUBMITTED, GRADED, EXPIRED
+  snapshot       String       // JSON stringified immutable ordered questions snapshot
+  cheatFlags     String?      // JSON stringified anti-cheat event logs (e.g. tab switches)
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime     @default(now())
+
+  exam           Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student        User?        @relation("StudentExamAttempts", fields: [studentId], references: [id], onDelete: SetNull)
+  answers        ExamAnswer[]
+}
+
+model ExamAnswer {
+  id                String      @id @default(uuid())
+  attemptId         String
+  questionId        String
+  selectedOptionIds String?     // Comma-separated or JSON of chosen option ID(s)
+  textAnswer        String?     // For short answer, fill blank, or essay
+  score             Float?      // Points awarded for this specific question
+  isCorrect         Boolean?
+  isFlagged         Boolean     @default(false) // Student flagged for review
+  autosavedAt       DateTime    @default(now())
+
+  attempt           ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+}
+
+// -------------------------------------------------------------
+// 6. ASSIGNMENTS & SUBMISSIONS (WITH VERSIONING)
+// -------------------------------------------------------------
+
+model Assignment {
+  id                  String                 @id @default(uuid())
+  title               String
+  description         String
+  attachments         String?                // JSON stringified list of file URLs / metadata
+  startDate           DateTime?
+  deadline            DateTime?
+  allowLateSubmission Boolean                @default(true)
+  maxAttempts         Int                    @default(3)
+  showScore           Boolean                @default(true)
+  showFeedback        Boolean                @default(true)
+  teacherId           String
+  classId             String
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  teacher             User                   @relation("TeacherAssignments", fields: [teacherId], references: [id])
+  class               Class                  @relation(fields: [classId], references: [id], onDelete: Cascade)
+  submissions         AssignmentSubmission[]
+}
+
+model AssignmentSubmission {
+  id             String              @id @default(uuid())
+  assignmentId   String
+  studentId      String
+  status         String              @default("SUBMITTED") // SUBMITTED, GRADED, RETURNED
+  currentVersion Int                 @default(1)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  assignment     Assignment          @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student        User                @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  versions       SubmissionVersion[]
+}
+
+model SubmissionVersion {
+  id             String               @id @default(uuid())
+  submissionId   String
+  version        Int                  @default(1)
+  textContent    String?
+  files          String?              // JSON stringified uploaded files (PDF, Image, Audio, DOCX)
+  submittedAt    DateTime             @default(now())
+  score          Float?
+  feedback       String?
+  gradedAt       DateTime?
+  gradedById     String?
+
+  submission     AssignmentSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+}
+
+// -------------------------------------------------------------
+// 7. NOTIFICATIONS, AI, AUDIT LOGS
+// -------------------------------------------------------------
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("INFO") // ASSIGNMENT_ASSIGNED, EXAM_ASSIGNED, GRADING_COMPLETED, etc.
+  isRead    Boolean  @default(false)
+  data      String?  // JSON metadata
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AIJob {
+  id          String   @id @default(uuid())
+  userId      String
+  type        String   // PARSE_DOC, GENERATE_QUESTION, GRADE_ESSAY
+  status      String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  input       String?  // JSON input
+  output      String?  // JSON output
+  tokensUsed  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model AIUsage {
+  id          String   @id @default(uuid())
+  userId      String
+  action      String   // OCR_DOC, QUESTION_GEN, ESSAY_GRADE
+  tokensUsed  Int      @default(0)
+  creditsUsed Int      @default(1)
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String   // SCORE_CHANGE, ANSWER_KEY_CHANGE, EXAM_PUBLISH, etc.
+  entity     String   // Exam, Question, Grade, User
+  entityId   String?
+  beforeData String?  // JSON
+  afterData  String?  // JSON
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
